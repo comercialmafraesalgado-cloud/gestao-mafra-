@@ -1,0 +1,7 @@
+# Deploy automático: o Netlify roda o build e publica a pasta dist/ (index.html + arquivos de apoio).
+[build]
+  command = "node build.js"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"

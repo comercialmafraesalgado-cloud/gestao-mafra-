@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "jsdom": "^29.1.1"
+  },
+  "scripts": {
+    "montar": "node modulos/montar.js",
+    "testar": "node validar.js && node testar-usuarios.js && node testar-subcondominios.js && node testar-checkin-auto.js && node testar-build127.js && node testar-listas.js && node testar-recorrencia.js",
+    "build": "node build.js",
+    "tudo": "node build.js && npm run testar"
+  }
+}

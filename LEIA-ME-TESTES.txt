@@ -1,0 +1,58 @@
+==========================================================
+ GESTÃO MAFRA — TESTES AUTOMÁTICOS (a "trava" anti-regressão)
+==========================================================
+
+  validar.js          → confere as 740+ funções e os fluxos base.
+  testar-usuarios.js  → entra como CADA usuário, clica em cada
+                        botão da aba Relatórios, roda o ciclo
+                        enviar→aprovar/devolver→publicar→arquivar,
+                        e ATACA o sistema de propósito (apaga
+                        fotos, derruba contagens) para provar que
+                        os alarmes da "Saúde do sistema" disparam.
+
+COMO RODAR (instala uma vez só):
+  1. Instale o Node.js (nodejs.org)
+  2. Numa pasta com o index.html + estes dois arquivos:
+       npm install jsdom
+       node validar.js
+       node testar-usuarios.js
+  3. Os dois precisam terminar com "✅ tudo passou".
+     Se algum acusar FALHA, NÃO publique — me mande o erro.
+
+A pasta "modulos" é o código fatiado por aba. Para remontar:
+       cd modulos
+       node montar.js
+
+LEMBRETE: dentro do app (aba Gerenciar → 🩺 Saúde do sistema)
+existe a verificação que roda SOZINHA todo dia e avisa a Bianca
+no sino se algo quebrar — você não precisa conferir nada à mão.
+
+==========================================================
+ COMO REVERTER UMA ABA ESPECÍFICA (sem perder as outras)
+==========================================================
+O app é fatiado em 18 módulos — um arquivo por aba:
+  aba_relatorios.js, aba_calendario.js, aba_gerenciar.js, etc.
+  (+ _nucleo.js, que é o motor compartilhado por todas)
+
+Se a aba X quebrou no build NOVO, mas o build NOVO também tem
+melhorias na aba Y que você quer manter:
+
+  1. Pegue a pasta "modulos" do zip do build NOVO;
+  2. Pegue SÓ o arquivo aba_X.js do zip do build ANTIGO
+     (o que estava bom) e cole por cima;
+  3. Rode:  cd modulos  →  node montar.js
+  4. Rode os testes (node validar.js / node testar-usuarios.js);
+  5. Publique o site com o index.html gerado.
+
+Resultado: aba X volta como era, aba Y continua nova.
+Por isso é importante GUARDAR os zips de cada build no Drive —
+eles são a prateleira de peças de reposição.
+
+ATENÇÃO: mudanças no _nucleo.js (motor compartilhado) valem para
+o app inteiro e não dão para reverter "por aba" — por isso elas
+são as mais testadas. Na dúvida, me mande o index e diga qual aba
+e qual build: eu faço essa troca de módulo para você.
+
+E os DADOS são outra coisa: cada aba guarda os seus em chaves
+separadas no banco. Restaurar a fotografia dos relatórios (na
+Saúde do sistema) NÃO mexe em calendário, atendimentos, nada.
