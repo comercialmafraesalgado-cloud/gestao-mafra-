@@ -11,8 +11,8 @@
 |---|---|
 | Build no ar | **133** (19/09) — site completo confirmado (manifest + ícones); publicação por "browse files to upload" + Ctrl + A |
 | Build pronto para publicar | **143** (versão 2026-10-02) — inclui 131 a 142 (celular, ícone, listas por pessoa, etapas, Kanban com Concluídos) + status por ocorrência em tarefas recorrentes |
-| Fase atual | **Fase 1 — Levantamento em andamento** (raio-X do código concluído em 06/10 → `FASE-1-LEVANTAMENTO.md`; falta o lado das contas e validar as regras "quem vê o quê"). Fase 0 concluída; builds 125→143 como exceções aprovadas; trabalho no Claude Code / GitHub desde 06/10/2026 |
-| Próxima fase | Fechar Fase 1 (itens de painel) · iniciar Fase 2 — Backup + 2FA (risco zero) |
+| Fase atual | **Fase 2 — Backup + blindagem (em andamento)**. Fase 1 concluída em 06/10 (`FASE-1-LEVANTAMENTO.md`). Guia executável: `FASE-2-BACKUP-E-BLINDAGEM.md`. Fase 0 concluída; builds 125→143 como exceções aprovadas; trabalho no Claude Code / GitHub desde 06/10/2026 |
+| Próxima fase | Fase 3 — Ambiente de teste (plano em `FASE-3-AMBIENTE-DE-TESTE.md`) |
 | Baseline de funções (validar.js) | 122 = 1187 · 123 = 1198 · 126 = 1208 · 127 = 1214 · 129 = 1256 · 130 = **1283** (nada removido) |
 | Testes obrigatórios | `validar.js` ✅ · `testar-usuarios.js` ✅ · `testar-subcondominios.js` ✅ (55) · `testar-checkin-auto.js` ✅ (21) · `testar-build127.js` ✅ (44) · `testar-listas.js` ✅ (62) |
 | Backup | Dropbox › *Backup Gestao Mafra* › `KIT-DE-RECUPERACAO.txt` + zips de cada build |
@@ -23,8 +23,8 @@
 | Fase | Nome | O que sai dela | Status |
 |---|---|---|---|
 | 0 | Largada | Build 123 (subcondomínios) + este documento | ✅ concluída |
-| 1 | Levantamento | Raio-X do banco, do login atual e das páginas públicas · regras por escrito de **quem vê o quê** (perfil × condomínio) · decisão técnica do cofre · data do Dia D | 🔄 em andamento (código ✅ · falta lado das contas) |
-| 2 | Backup total e blindagem de contas | Cópia integral do banco fora do Supabase · contas do Netlify/Supabase com 2FA e donos definidos · risco zero | ⏳ |
+| 1 | Levantamento | Raio-X do banco, do login atual e das páginas públicas · regras por escrito de **quem vê o quê** (perfil × condomínio) · decisão técnica do cofre · data do Dia D | ✅ concluída (06/10) |
+| 2 | Backup total e blindagem de contas | Cópia integral do banco fora do Supabase · contas do Netlify/Supabase com 2FA e donos definidos · risco zero | 🔄 em andamento |
 | 3 | Ambiente de teste | Site de teste + banco de teste 100% separados da produção | ⏳ |
 | 4 | Login novo (crachá) | Login por e-mail no ambiente de teste · recuperação de senha testada com prova | ⏳ |
 | 5 | O cofre (RLS) | Trancar um grupo de dados por vez · fecha com **invasão simulada: tudo zero** | ⏳ |
@@ -39,9 +39,11 @@
 ### 06/10/2026 — Fase 1: raio-X do código (Levantamento)
 - Kit colocado no GitHub (`comercialmafraesalgado-cloud/gestao-mafra-`, commit "build 143: ponto de partida"); `node build.js` + 7 suítes ✅; 1303 funções.
 - **Raio-X de segurança do código** (sem mudar nada em produção): varredura em 5 frentes + verificação adversarial. **26 achados; 16 altos, todos confirmados (0 refutados).** Entregável: `FASE-1-LEVANTAMENTO.md`.
-- Risco-raiz: banco destrancado (chave pública no site, sem RLS). Senhas em texto puro e iguais no código. Crachá de sessão forjável (entra como master sem senha). Páginas públicas (agendar/#ag=/vistoria) leem/gravam produção e vazam dado pessoal (LGPD). Filtro por condomínio só na tela. Funções de IA disparáveis por qualquer um (custo).
-- **Fase 1 ainda NÃO fechada:** faltam os itens que só aparecem nos painéis (estado do RLS, 2FA, backup real, acessos de terceiros, bucket `gravacoes`, e-mails da equipe, volumes) e a validação das regras "quem vê o quê" com a Mafra — ver seção 5 e 7 do `FASE-1-LEVANTAMENTO.md`.
-- Próximo: completar os itens de painel da Fase 1 e iniciar a Fase 2 (backup + 2FA), que é risco zero.
+- Risco-raiz: chave pública no site + navegador fala direto com o banco. **RLS está LIGADO, mas com política aberta ao anônimo** (por isso o app funciona sem login) — na prática a tabela segue acessível a quem tiver a chave; conserto = fechar a política por condomínio (Fase 5). Senhas em texto puro e iguais no código. Crachá de sessão forjável (entra como master sem senha). Páginas públicas (agendar/#ag=/vistoria) leem/gravam produção e vazam dado pessoal (LGPD). Filtro por condomínio só na tela. Funções de IA disparáveis por qualquer um (custo).
+- **Respostas da Mafra (contas):** RLS ligado (política a confirmar); **2FA desligado** nas 3 contas; **sem backup externo** hoje; sem terceiros com acesso (só a empresa); bucket `gravacoes` provavelmente público; e-mails da equipe existem (deixados para a Fase 4).
+- **Regras "quem vê o quê" decididas:** master NÃO vê agenda só de gestor; grupos Le Monde/Trio — gestor vê só o seu grupo (as sub-unidades dele).
+- ✅ **Fase 1 CONCLUÍDA.** Entregável `FASE-1-LEVANTAMENTO.md`. Follow-ups menores (política de RLS, bucket) entram nas Fases 5/6.
+- Iniciada a **Fase 2** (backup + 2FA): guia `FASE-2-BACKUP-E-BLINDAGEM.md` entregue à Mafra; ZIP do código gerado. Plano da Fase 3 em `FASE-3-AMBIENTE-DE-TESTE.md`. Dia D: a Mafra pediu o mais breve possível (marca-se após a Fase 5 provada).
 
 ### 06/10/2026 — Passagem para o Claude Code
 - Kit entregue: pasta `gestao-mafra` com `CLAUDE.md` (regras e contexto), `COMECE-AQUI.md`, `PROMPT-INICIAL.md` (versão A: builds; versão B: Fase 1), módulos do build 143, site-apoio, testes, documento oficial e cronograma.

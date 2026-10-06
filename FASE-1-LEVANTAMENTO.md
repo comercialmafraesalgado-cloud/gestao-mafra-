@@ -9,7 +9,7 @@
 ## RESUMO EM 10 LINHAS (para a Mafra)
 1. O Projeto de Segurança está **no começo**: só a Fase 0 (largada) foi concluída. Nenhuma das 9 proteções foi aplicada ainda.
 2. O app funciona bem, mas hoje está **de verdade vulnerável** — não é teoria.
-3. **Risco-raiz:** o banco está destrancado. A chave que abre tudo está escrita dentro do site público; o navegador fala direto com o banco. Enquanto o "cofre" (RLS, Fase 5) não for ligado, qualquer pessoa com o endereço do app lê, altera e **apaga** os dados de todos os condomínios.
+3. **Risco-raiz:** a chave que abre o banco está escrita dentro do site público e o navegador fala direto com o banco. O **RLS está LIGADO** (confirmado pela Mafra 06/10), mas com uma **política aberta ao anônimo** — é por isso que o app funciona sem login. Na prática, qualquer pessoa com o endereço do app ainda **lê, altera e apaga** os dados de todos os condomínios. O conserto é **fechar essa política por condomínio** (Fase 5).
 4. **Senhas:** estão escritas por extenso (sem embaralhar) dentro do código; quase todo mundo usa a mesma (`mafra2026`) e a conta mestre usa `master2026`. Quem abre o "ver código-fonte" do site lê usuário e senha de todos, inclusive dos CEOs.
 5. **Login:** o "crachá" de sessão pode ser forjado no navegador — dá para **entrar como master sem saber senha nenhuma**. Não há limite de tentativas.
 6. **Páginas públicas** (agendar, acompanhamento, vistoria) leem e gravam a produção direto, sem login, e **vazam dados pessoais** (nome, e-mail, telefone de quem agenda) — questão de LGPD.
@@ -84,15 +84,15 @@ Todas rodam **antes** de qualquer login e falam direto com o banco pela chave p�
 
 ---
 
-## 5. BACKUPS E ACESSOS — o que só a Mafra consegue ver (lacunas do raio-X)
-Estes itens **não aparecem no código** — dependem de entrar nos painéis. Completar aqui fecha a Fase 1:
-- [ ] **RLS (o cofre):** está ligado ou desligado hoje na tabela `dados`? *(o fato de a tela pública gravar sem login indica que está liberado para anônimo — confirmar)*
-- [ ] **2FA (verificação em duas etapas)** ligado em **Netlify, Supabase e Google**?
-- [ ] **Backup real** dos dados hoje fora do Supabase — existe? Onde? (Dropbox *Backup Gestao Mafra*?)
-- [ ] **Acessos de terceiros** nas plataformas (colaboradores, integrações) — quem tem? Remover os que não precisam.
-- [ ] **Bucket `gravacoes`** público ou privado?
-- [ ] **E-mails da equipe** já coletados? (pré-requisito do login novo, Fase 4)
-- [ ] **Volume** de cada família `mafra:*` no banco.
+## 5. BACKUPS E ACESSOS — respostas da Mafra (06/10/2026)
+Estes itens não aparecem no código; a Mafra confirmou nos painéis:
+- **RLS:** ✅ **LIGADO** na tabela `dados`. ⚠️ Mas, como o app lê e grava com a chave anônima e **sem login**, quase certamente há uma **política liberando o papel anônimo** (RLS ligado ≠ trancado). Na prática, a tabela ainda está acessível a quem tiver a chave. **Verificação final (20s):** Supabase → tabela `dados` → ⋯ → *View policies* (ou *Authentication → Policies*) → se houver política para `anon`/`public` com `USING (true)`, está aberta. Conserto na Fase 5 deixa de ser "ligar o RLS" e passa a ser **"trocar a política aberta por regras por condomínio"**.
+- **2FA:** ❌ **desligado** em Netlify, Supabase e Google → **prioridade da Fase 2**.
+- **Backup externo:** ❌ **não existe** hoje (só dentro do próprio sistema) → **prioridade da Fase 2** (primeiro backup fora da plataforma).
+- **Acessos de terceiros:** ✅ só a empresa da Mafra tem acesso — **nada a remover**.
+- **Bucket `gravacoes`:** provavelmente **público** (confirmar no Storage) → Fase 6 deixa privado / com link assinado.
+- **E-mails da equipe:** a Mafra tem; fica para a **Fase 4** (a pedido dela).
+- **Volume** por família `mafra:*`: medir no painel quando útil (não bloqueia).
 
 ---
 
@@ -127,8 +127,11 @@ Hoje isto é só enfeite de tela; vira o desenho do cofre. **L** = pode ler · *
 | Ocorrências / helpdesk | L+G | L+G | L+G | L+G (as do seu condomínio) | L+G |
 | Métricas | L (todas) | L (próprias) | L (próprias) | — | — |
 
-> Os **grupos Le Monde e Trio** têm regra especial: o gestor vê **as suas sub-unidades e só elas** (a gerente + 2 administrativos formam um time). Isso precisa ser explícito no cofre.
-> **Pergunta para a Mafra:** o master quer ver **tudo** (inclusive agenda só de gestor)? Hoje a decisão era "não". Confirmar linha a linha.
+> ✅ **Decidido pela Mafra (06/10/2026):**
+> - **Master NÃO vê agenda que é só de gestor** (mantém a decisão anterior). O master vê a agenda da Mafra e os eventos em que alguém da Mafra participa; evento **exclusivamente** de gestor não aparece para o master. *(Bate com a lógica atual de `eventoVisivelPara` — o cofre da Fase 5 só precisa manter essa regra.)*
+> - **Grupos Le Monde e Trio:** cada um tem subcondomínios; o gestor enxerga **o seu grupo** — as sub-unidades do grupo dele, e **só elas** (a gerente + 2 administrativos do grupo formam um time). Nenhum gestor vê o grupo do outro.
+>
+> Demais linhas da tabela: rascunho a validar com a Mafra quando chegarmos à Fase 5.
 
 ---
 
@@ -149,7 +152,7 @@ Hoje isto é só enfeite de tela; vira o desenho do cofre. **L** = pode ler · *
 ## ANEXO — os 16 riscos altos confirmados (com a prova)
 | # | Risco | Prova (arquivo:linha) | Resolve na |
 |---|---|---|---|
-| 1 | Banco destrancado: chave pública abre tudo (ler/gravar/**apagar**) | `_pagina_inicio.html:57-58`; `_nucleo.js:697,727,746,766` | Fase 5 |
+| 1 | RLS ligado mas com política aberta ao anônimo: a chave pública ainda abre tudo (ler/gravar/**apagar**) | `_pagina_inicio.html:57-58`; `_nucleo.js:697,727,746,766` + política no painel | Fase 5 |
 | 2 | Senhas em texto puro, iguais, dentro do código público | `_nucleo.js:100-112,941`; `index.html:1689-1700` | Fase 4 |
 | 3 | Crachá de login forjável → entra como master sem senha | `_nucleo.js:1088-1111,244,935-948` | Fase 4 + 8 |
 | 4 | Senhas trocadas gravadas por extenso em `mafra:usuarios_extra` | `aba_gerenciar.js:14-19,695-699`; `_nucleo.js:1538-1540` | Fase 4 |
@@ -169,6 +172,7 @@ Hoje isto é só enfeite de tela; vira o desenho do cofre. **L** = pode ler · *
 ---
 
 ## PAINEL / PRÓXIMOS PASSOS
-- **Fase 1 — Levantamento:** raio-X do **código concluído** (06/10). Falta o **lado das contas** (item 5) e a **validação das regras do item 7** com a Mafra para fechar a fase.
-- **Pode começar já, risco zero:** **Fase 2** (backup completo fora do Supabase + ligar **2FA** no Netlify/Supabase/Google + remover acessos antigos).
+- **Fase 1 — Levantamento:** ✅ **concluída** (06/10). Raio-X do código + respostas das contas (item 5) + regras "quem vê o quê" decididas com a Mafra (item 7). Follow-ups menores (confirmar a política de RLS e o bucket `gravacoes`) entram nas Fases 5/6.
+- **Em andamento agora, risco zero:** **Fase 2** (backup completo fora do Supabase + ligar **2FA** no Netlify/Supabase/Google). Situação confirmada: hoje **não há backup externo** e o **2FA está desligado** — por isso é prioridade. Acessos de terceiros: nada a remover (só a empresa da Mafra). Guia executável: `FASE-2-BACKUP-E-BLINDAGEM.md`.
+- **Dia D:** a Mafra pediu o mais breve possível. Caminho mais curto: Fase 2 (agora) → Fase 3 (banco/site de teste) → Fases 4-6 no teste → Dia D logo após a Fase 5 provada. A data é marcada quando a Fase 5 passar na invasão simulada.
 - **Ordem obrigatória:** Fase 2 → Fase 3 (banco/site de teste) → Fase 4 (login novo) → Fase 5 (cofre) → Fase 6 (públicos) → Fase 7 (Dia D) → Fase 8 (estabilização). O risco-raiz (banco destrancado) só se fecha na Fase 5, que depende das Fases 3 e 4 prontas.
