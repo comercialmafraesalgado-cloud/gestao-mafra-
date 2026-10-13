@@ -404,8 +404,6 @@ async function arquivarRelatorio(id){
     foto: "", // remove o base64
     arquivada: true
   }));
-  // apaga também a chave de fotos deste relatório (é ela que ocupa o espaço)
-  try{ await _relApagarFotos(r.id); }catch(e){}
   delete r.fotosSeparadas; delete r.fotosBytes;
   r.arquivado = true;
   r.arquivadoEm = Date.now();
@@ -413,7 +411,10 @@ async function arquivarRelatorio(id){
   if(!Array.isArray(r.historico)) r.historico=[];
   r.historico.push({acao:"arquivado", por:state.userId, ts:Date.now()});
   const okArq=await salvarIndiceRelatorios(d, {ids:[r.id]});
-  if(!okArq) return;
+  if(!okArq) return; // índice não gravou → NÃO apaga as fotos (nada é perdido; é só tentar de novo)
+  // 🔒 build 144: só libera (apaga) as fotos DEPOIS que o índice arquivado gravou de verdade,
+  // para uma falha de gravação não deixar o relatório sem fotos e sem arquivar.
+  try{ await _relApagarFotos(r.id); }catch(e){}
   } finally { esconderCarregandoRel(); }
   alert("✅ Relatório arquivado. O resumo em texto continua disponível, e o espaço no banco foi liberado.");
   render();

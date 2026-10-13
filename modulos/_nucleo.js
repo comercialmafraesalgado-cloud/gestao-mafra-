@@ -1860,8 +1860,9 @@ async function _relMigrarFundo(){
       const ok=await _relGravarFotosDe(r);
       if(!ok){ console.warn("[relatórios] migração pausada (falha ao gravar fotos de "+r.id+")"); return; }
       _relStripFotos(r);
-      const okIdx=await saveRelatorios(d, {ids:[r.id||((r.condominio||"?")+"|"+(r.mesRef||"?"))]});
-      if(okIdx){ feitos++; console.log("[relatórios] "+r.condominio+" · "+r.mesRef+" migrado."); }
+      const okIdx=await saveRelatorios(d, {ids:[r.id||((r.condominio||"?")+"|"+(r.mesRef||"?"))], silencioso:true});
+      if(!okIdx){ console.warn("[relatórios] migração pausada (sem servidor confiável) — tenta no próximo login."); return; }
+      feitos++; console.log("[relatórios] "+r.condominio+" · "+r.mesRef+" migrado.");
       await new Promise(res=>setTimeout(res,400));
     }
     if(feitos) console.log("[relatórios] migração concluída — índice leve.");
@@ -2060,7 +2061,9 @@ async function saveRelatorios(d, opts){
     // e gravava por cima, derrubando relatórios do mês que só existiam no servidor.
     const nuvem=await _storeGetNuvem("mafra:relatorios");
     if(!nuvem.daNuvem){
-      alert("⚠️ Sem conexão confiável com o servidor agora.\n\nPara proteger os relatórios, NADA foi gravado. Confira a internet e tente salvar de novo em alguns segundos.");
+      // opts.silencioso: chamadas de segundo plano (ex.: migração automática) não
+      // devem abrir alerta modal — apenas desistem desta gravação e tentam depois.
+      if(!opts.silencioso) alert("⚠️ Sem conexão confiável com o servidor agora.\n\nPara proteger os relatórios, NADA foi gravado. Confira a internet e tente salvar de novo em alguns segundos.");
       return false;
     }
     let fresco=null;
@@ -2072,7 +2075,7 @@ async function saveRelatorios(d, opts){
       // errado (cópia velha) — bloqueia em vez de apagar relatórios.
       const removidos=(opts.removidos||[]).length;
       if(mescla.length < fresco.list.length - removidos){
-        alert("⚠️ Gravação BLOQUEADA por segurança: a lista ficaria menor que a do servidor sem exclusão pedida.\n\nNada foi alterado. Atualize a página e tente de novo.");
+        if(!opts.silencioso) alert("⚠️ Gravação BLOQUEADA por segurança: a lista ficaria menor que a do servidor sem exclusão pedida.\n\nNada foi alterado. Atualize a página e tente de novo.");
         return false;
       }
       d=Object.assign({}, fresco, {list:mescla});
@@ -2084,7 +2087,7 @@ async function saveRelatorios(d, opts){
     await new Promise(res=>setTimeout(res,1200));
     ok=await storeSet("mafra:relatorios",JSON.stringify(d));
   }
-  if(!ok) alert("⚠️ Não foi possível salvar no servidor.\n\nVerifique sua internet e tente novamente — as alterações desta ação NÃO foram gravadas.");
+  if(!ok && !opts.silencioso) alert("⚠️ Não foi possível salvar no servidor.\n\nVerifique sua internet e tente novamente — as alterações desta ação NÃO foram gravadas.");
   return ok;
 }
 
