@@ -14,7 +14,7 @@ setTimeout(() => { (async () => {
   const alerts=[]; w.alert=m=>alerts.push(String(m)); w.confirm=()=>true; w.scrollTo=()=>{};
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const setUser=uid=>w.eval(`state.userId=${JSON.stringify(uid)}; state.user=USUARIOS[${JSON.stringify(uid)}];`);
-  t("APP_VERSAO é build 143", /build 143/.test(w.eval("APP_VERSAO")));
+  t("APP_VERSAO é build 144", /build 144/.test(w.eval("APP_VERSAO")));
 
   /* ================= 1) OCUPAÇÃO ================= */
   // relatório fictício: 46 ocupadas, 0 vazias, 1 em reforma → total tem que ser 46 e ocupadas 100%

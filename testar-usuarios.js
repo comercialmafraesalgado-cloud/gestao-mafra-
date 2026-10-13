@@ -217,6 +217,29 @@ setTimeout(() => { (async () => {
   const depoisN=JSON.parse(w.localStorage.getItem("mafra:relatorios")).list.length;
   t("fotografia: restauração devolve a lista inteira", depoisN===antesN && depoisN>0);
 
+  // build 144: restauração ADITIVA — traz de volta o que falta SEM remover os atuais ("mudou o mês")
+  const diaAdit="2026-01-01";
+  w.localStorage.setItem("mafra:snapshot:relatorios:"+diaAdit, JSON.stringify({list:[mk("RA","Trio Mall","publicado"), mk("RB","Trio Mall","publicado")]}));
+  w.localStorage.setItem("mafra:relatorios", JSON.stringify({list:[mk("RB","Trio Mall","publicado"), mk("RC","Trio Mall","rascunho")]}));
+  w._storeCacheClear();
+  setUser("bianca"); confirmRet=true; alerts=[];
+  await w.restaurarSnapshotRel(diaAdit);
+  const idsAdit=lerDados().list.map(r=>r.id).sort().join(",");
+  t("build 144: restauração aditiva traz RA de volta E mantém o atual RC", idsAdit==="RA,RB,RC");
+
+  // build 144: sem servidor confiável, saveRelatorios NÃO sobrescreve (protege o mês vigente)
+  w.localStorage.setItem("mafra:relatorios", JSON.stringify({list:[mk("RX","Trio Mall","publicado"), mk("RY","Trio Mall","publicado")]}));
+  w._storeCacheClear();
+  w.eval("SB = { from:function(){ return { select:function(){ return { eq:function(){ return { maybeSingle:function(){ return Promise.resolve({data:null,error:{message:'offline simulado'}}); } }; } }; } }; } };");
+  alerts=[];
+  const okAbort=await w.saveRelatorios({list:[]}, {ids:["RZ"]});
+  const idsAbort=lerDados().list.map(r=>r.id).sort().join(",");
+  t("build 144: servidor não confirmado → saveRelatorios retorna false", okAbort===false);
+  t("build 144: lista do servidor fica INTACTA quando a gravação é recusada", idsAbort==="RX,RY");
+  t("build 144: avisa 'sem conexão confiável'", alerts.some(a=>/conexão confiável/i.test(a)));
+  w.eval("SB=null;");
+  gravarSeed();
+
   // gestor não restaura
   setUser("gtest"); alerts=[];
   await w.restaurarSnapshotRel(hojeSnap);
