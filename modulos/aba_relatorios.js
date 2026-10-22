@@ -42,6 +42,57 @@ function _grupoStatusRel(s){
 // nome amigável de um usuário (global — usado no histórico e nas notificações do fluxo de aprovação)
 function _nomeUsuarioRel(id){ try{ return (USUARIOS&&USUARIOS[id]&&USUARIOS[id].nome)?USUARIOS[id].nome:(id||"—"); }catch(e){ return id||"—"; } }
 
+// build 145 — LIMPEZA MANUAL do histórico antigo (só master, ex.: Bianca).
+// Guarda os relatórios com mês de referência de MAIS DE 2 ANOS: apenas marca
+// arquivadoHistorico=true (some do dia a dia, mas NÃO é apagado nem removido do
+// banco; continua inteiro, com fotos, e pode ser RESTAURADO a qualquer momento).
+// Nada automático; a pessoa clica, vê o que vai sair e confirma.
+async function limparHistoricoAntigo(){
+  const ehMaster=state.user && state.user.tipo==="master";
+  if(!ehMaster){ alert("Apenas um usuário master (ex.: Bianca) pode limpar o histórico."); return; }
+  mostrarCarregandoRel("Procurando relatórios antigos…");
+  let d;
+  try{ d=await loadRelatorios(true); } finally { esconderCarregandoRel(); }
+  // limite: mês de referência mais antigo que ~2 anos (mantém os últimos 24 meses)
+  const ref=new Date(); ref.setDate(1); ref.setMonth(ref.getMonth()-24);
+  const limite=ref.getFullYear()+"-"+("0"+(ref.getMonth()+1)).slice(-2);
+  const antigos=(d.list||[]).filter(r=>r && r.mesRef && r.mesRef<limite && !r.arquivadoHistorico);
+  if(!antigos.length){ alert("✅ Nada a limpar.\n\nNão há relatórios com mais de 2 anos fora do histórico. Sua lista está em dia."); return; }
+  const porMes={}; antigos.forEach(r=>{ porMes[r.mesRef]=(porMes[r.mesRef]||0)+1; });
+  const resumo=Object.keys(porMes).sort().map(m=>`• ${mesRefLabel(m)}: ${porMes[m]} relatório(s)`).join("\n");
+  const msg=`🧹 Limpar histórico antigo (mais de 2 anos)\n\n`
+    +`${antigos.length} relatório(s) vão SAIR da sua lista do dia a dia e ir para o HISTÓRICO:\n\n${resumo.slice(0,1400)}${resumo.length>1400?"\n…":""}\n\n`
+    +`⚠️ Nada é apagado. Eles continuam inteiros (com fotos) e você pode VER e RESTAURAR a qualquer momento no botão "Ver histórico antigo".\n\nContinuar?`;
+  if(!confirm(msg)) return;
+  mostrarCarregandoRel("Guardando no histórico…");
+  let ok=false;
+  try{
+    const fresca=await loadRelatorios(true);
+    const ids=antigos.map(r=>r.id).filter(Boolean);
+    (fresca.list||[]).forEach(r=>{ if(r && ids.indexOf(r.id)>=0){ r.arquivadoHistorico=true; r.arquivadoHistoricoEm=Date.now(); r.arquivadoHistoricoPor=state.userId; } });
+    ok=await saveRelatorios(fresca, {ids});
+  } finally { esconderCarregandoRel(); }
+  if(!ok){ alert("⚠️ Não foi possível concluir agora. Nada foi alterado — verifique a internet e tente de novo."); return; }
+  try{ await pushAviso("bianca",{id:"hist"+Date.now(),texto:"🧹 Histórico antigo guardado",sub:`${antigos.length} relatório(s) com +2 anos foram para o histórico (recuperáveis).`,ts:Date.now()}); }catch(e){}
+  alert(`✅ Pronto! ${antigos.length} relatório(s) antigo(s) foram para o histórico.\n\nSua lista ficou mais limpa. Para ver ou restaurar, use o botão "Ver histórico antigo".`);
+  render();
+}
+
+// restaura um relatório do histórico antigo de volta para a lista normal (desfaz a limpeza)
+async function restaurarHistoricoRel(id){
+  mostrarCarregandoRel("Restaurando…");
+  let ok=false;
+  try{
+    const d=await loadRelatorios(true);
+    const r=(d.list||[]).find(x=>x.id===id);
+    if(!r){ alert("Relatório não encontrado. Atualize a página (F5) e tente de novo."); return; }
+    delete r.arquivadoHistorico; delete r.arquivadoHistoricoEm; delete r.arquivadoHistoricoPor;
+    ok=await saveRelatorios(d, {ids:[id]});
+  } finally { esconderCarregandoRel(); }
+  if(!ok){ alert("⚠️ Não foi possível restaurar agora. Verifique a internet e tente de novo."); return; }
+  render();
+}
+
 async function renderRelatorios(){
   const view=document.getElementById("view");
   view.innerHTML='<div style="padding:40px;text-align:center;color:#9aa">Carregando…</div>';
@@ -57,7 +108,12 @@ async function renderRelatorios(){
   if(!state.relFiltroMes) state.relFiltroMes="";
   if(!state.relFiltroCond) state.relFiltroCond="";
   const fMes=state.relFiltroMes, fCond=state.relFiltroCond;
+  // build 145: esconde o histórico antigo (arquivadoHistorico) do dia a dia,
+  // a menos que a pessoa clique em "Ver histórico antigo". Nada é removido — só escondido.
+  const verHist=!!state.relVerHistorico;
+  const nArquivados=lista.filter(r=>r.arquivadoHistorico).length;
   let filtrada=lista.slice();
+  if(!verHist) filtrada=filtrada.filter(r=>!r.arquivadoHistorico);
   if(fMes) filtrada=filtrada.filter(r=>r.mesRef===fMes);
   if(fCond && !ehGestor) filtrada=filtrada.filter(r=>r.condominio===fCond);
   filtrada.sort((a,b)=> (b.mesRef+b.condominio).localeCompare(a.mesRef+a.condominio));
@@ -96,6 +152,8 @@ async function renderRelatorios(){
     ${(fMes||fCond)?`<button class="btn-ghost" onclick="state.relFiltroMes='';state.relFiltroCond='';render()">Limpar</button>`:""}
     <span style="flex:1"></span>
     <button class="btn-ghost" onclick="abrirConsolidado()">📊 Consolidado semestral/anual</button>
+    ${ehMaster?`<button class="btn-ghost" onclick="limparHistoricoAntigo()" title="Guarda os relatórios com mais de 2 anos (some do dia a dia). Nada é apagado — recuperável a qualquer momento.">🧹 Limpar histórico antigo</button>`:""}
+    ${nArquivados>0?`<button class="btn-ghost" onclick="state.relVerHistorico=!state.relVerHistorico;render()">${verHist?"🔼 Ocultar histórico":"📦 Ver histórico antigo"} (${nArquivados})</button>`:""}
   </div>`;
 
   // lista de relatórios
@@ -123,10 +181,11 @@ async function renderRelatorios(){
           <div><div class="rel-cond">${esc(r.condominio)}</div><div class="rel-mes">${mesRefLabel(r.mesRef)}</div></div>
           <span class="evrow-tag ${statusRelCls(r.status)}">${statusRelLabel(r.status)}</span>
         </div>
-        <div class="rel-card-meta">${r.arquivado?'📦 Arquivado em '+(new Date(r.arquivadoEm).toLocaleDateString("pt-BR"))+' · ':''}${nFotos} registro${nFotos!==1?"s":""}${nReu?` · ${nReu} reuni${nReu!==1?"ões":"ão"}`:""} · ${(r.listaCorretiva||[]).length} corretivas · ${(r.listaPreventiva||[]).length} preventivas${(r.editadoEm||r.criadoEm)?` · última edição ${new Date(r.editadoEm||r.criadoEm).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}`:""}</div>
+        <div class="rel-card-meta">${r.arquivadoHistorico?'📦 Histórico antigo · ':''}${r.arquivado?'📦 Arquivado em '+(new Date(r.arquivadoEm).toLocaleDateString("pt-BR"))+' · ':''}${nFotos} registro${nFotos!==1?"s":""}${nReu?` · ${nReu} reuni${nReu!==1?"ões":"ão"}`:""} · ${(r.listaCorretiva||[]).length} corretivas · ${(r.listaPreventiva||[]).length} preventivas${(r.editadoEm||r.criadoEm)?` · última edição ${new Date(r.editadoEm||r.criadoEm).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}`:""}</div>
         ${motivoHTML}
         <div class="rel-card-acoes">
           <button class="btn-ghost" onclick="visualizarRelatorioPDF('${r.id}')">👁️ Ver / PDF</button>
+          ${r.arquivadoHistorico?`<button class="btn-ghost" style="background:#E8F5E9;border-color:#2e7d32;color:#1b5e20" onclick="restaurarHistoricoRel('${r.id}')" title="Tira do histórico e volta para a lista normal">♻️ Restaurar</button>`:""}
           ${podeEditarEste && !r.arquivado?`<button class="btn-ghost" onclick="abrirEditorRelatorio('${esc(_jsq(r.condominio))}','${r.mesRef}','${r.id}')">✏️ Editar</button>`:""}
           ${podeEnviar?`<button class="btn-gold" onclick="enviarRelatorioJulia('${r.id}')">📨 Enviar para aprovação</button>`:""}
           ${podeAvaliar?`<button class="btn-gold" onclick="aprovarRelatorio('${r.id}')">✅ Aprovar</button>`:""}

@@ -9,8 +9,8 @@
 
 | Item | Estado |
 |---|---|
-| Build no ar | **133** (19/09) — site completo confirmado (manifest + ícones); publicação por "browse files to upload" + Ctrl + A |
-| Build pronto para publicar | **144** (2026-10-13) — emergência: conserto da perda de relatórios do mês vigente (não grava sem confirmar o servidor; restauração aditiva). 1304 funções · 7 suítes ✅ |
+| Build no ar | **144** (2026-10-22) — conserto da perda de relatórios, publicado via Netlify Drop (login mostrando "build 144") |
+| Build pronto para publicar | **145** (2026-10-22) — editar mês do relatório + limpeza segura do histórico (manual, recuperável). 1307 funções · 7 suítes ✅ |
 | Fase atual | **Fase 2 — Backup + blindagem (em andamento)**. Fase 1 concluída em 06/10 (`FASE-1-LEVANTAMENTO.md`). Guia executável: `FASE-2-BACKUP-E-BLINDAGEM.md`. Fase 0 concluída; builds 125→143 como exceções aprovadas; trabalho no Claude Code / GitHub desde 06/10/2026 |
 | Próxima fase | Fase 3 — Ambiente de teste (plano em `FASE-3-AMBIENTE-DE-TESTE.md`) |
 | Baseline de funções (validar.js) | 122 = 1187 · 123 = 1198 · 126 = 1208 · 127 = 1214 · 129 = 1256 · 130 = **1283** (nada removido) |
@@ -35,6 +35,15 @@
 ---
 
 ## 2. DIÁRIO DE BORDO (mais recente em cima)
+
+### 22/10/2026 — Build 145: editar mês do relatório + limpeza segura do histórico
+- Contexto: relatórios de set/out apareciam com mês errado (Agosto em vez de Setembro). Confirmado via SQL que **nada tinha sumido** — era só rótulo de mês. Corrigidos à mão no Supabase (Le Monde Parc e o rascunho do Centro Profissional → 2026-09), pelo ID, sem tocar no agosto de verdade.
+- Build 144 **publicado** (Netlify Drop, build no ar confirmado) — a perda por atropelo está estancada. O repositório **não estava** ligado ao Netlify (deploy manual por drag).
+- Build 145 construído a pedido da Mafra:
+  - **Editar mês** no editor do relatório (campo "Mês de referência") — corrige mês errado sem SQL.
+  - **Limpar histórico antigo** (manual, só master): guarda relatórios com +2 anos marcando `arquivadoHistorico` (NÃO apaga; esconde do dia a dia; recuperável pelo botão "Ver histórico antigo" com ♻️ Restaurar). Avisa a Bianca.
+- Dimensionamento: banco = 340 MB de relatórios/fotos (8 GB no Pro) → 2 anos cabem com folga; limpeza é só organização, não necessidade de espaço.
+- Provas: `validar.js` = **1307** (144 = 1304; nada removido); 7 suítes ✅; 7 provas novas em `testar-usuarios.js`; screenshots (celular + PC). Entregável: `LEIA-ME-BUILD-145.md`.
 
 ### 13/10/2026 — Build 144 (emergência): conserto da perda de relatórios do mês vigente
 - Reclamação: relatórios do mês vigente sumindo de novo; ao restaurar a fotografia, "mudou o mês" e as fotos não vieram todas.

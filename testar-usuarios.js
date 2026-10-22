@@ -318,6 +318,45 @@ setTimeout(() => { (async () => {
   t("link de agendamento: botão confirma 'Copiado!'", btnCop && /Copiado/.test(btnCop.textContent));
   w.closeModal&&w.closeModal();
 
+  // =====  8) build 145: editar mês de referência + limpeza do histórico antigo  =====
+  // (a) editor tem o campo de mês e coletarRelEdit respeita a troca
+  setUser("bianca"); w._storeCacheClear();
+  w.localStorage.setItem("mafra:relatorios", JSON.stringify({list:[mk("RM1","Trio Mall","rascunho",{mesRef:"2026-08"})]}));
+  w._storeCacheClear();
+  await w.abrirEditorRelatorio("Trio Mall","2026-08","RM1"); await new Promise(r=>setTimeout(r,200));
+  const edHtml=w.document.getElementById("modalMount").innerHTML;
+  t("build 145: editor tem campo de mês (relEditMes)", /id="relEditMes"/.test(edHtml));
+  const selMes=w.document.getElementById("relEditMes"); if(selMes) selMes.value="2026-09";
+  t("build 145: coletarRelEdit respeita o mês trocado", w.coletarRelEdit().mesRef==="2026-09");
+  w.closeModal&&w.closeModal();
+
+  // (b) limpeza: antigos (>2 anos) são marcados; recentes não
+  setUser("bianca"); confirmRet=true;
+  w.localStorage.setItem("mafra:relatorios", JSON.stringify({list:[
+    mk("RVELHO","Trio Mall","publicado",{mesRef:"2023-02"}),
+    mk("RNOVO","Trio Mall","publicado",{mesRef:"2026-09"})]}));
+  w._storeCacheClear();
+  await w.limparHistoricoAntigo();
+  let dH=JSON.parse(w.localStorage.getItem("mafra:relatorios"));
+  t("build 145: relatório de +2 anos vai para o histórico", !!(dH.list.find(r=>r.id==="RVELHO")||{}).arquivadoHistorico);
+  t("build 145: relatório recente NÃO é mexido pela limpeza", !(dH.list.find(r=>r.id==="RNOVO")||{}).arquivadoHistorico);
+
+  // (c) restaurar tira do histórico
+  await w.restaurarHistoricoRel("RVELHO");
+  dH=JSON.parse(w.localStorage.getItem("mafra:relatorios"));
+  t("build 145: restaurar tira o relatório do histórico", !(dH.list.find(r=>r.id==="RVELHO")||{}).arquivadoHistorico);
+
+  // (d) a lista normal esconde o histórico e mostra o botão de ver
+  w.localStorage.setItem("mafra:relatorios", JSON.stringify({list:[
+    mk("RH","Trio Mall","publicado",{mesRef:"2023-02",arquivadoHistorico:true}),
+    mk("RN","Trio Mall","publicado",{mesRef:"2026-09"})]}));
+  w._storeCacheClear(); w.eval("state.relVerHistorico=false; state.relFiltroMes=''; state.relFiltroCond='';");
+  await w.renderRelatorios(); await new Promise(r=>setTimeout(r,150));
+  const relHtml=w.document.getElementById("view").innerHTML;
+  t("build 145: histórico antigo fica ESCONDIDO na lista normal", relHtml.indexOf("'RH'")===-1 && relHtml.indexOf("'RN'")>=0);
+  t("build 145: botão 'Ver histórico antigo' aparece quando há arquivados", /Ver histórico antigo \(1\)/.test(relHtml));
+  gravarSeed();
+
   if (erros.length){ console.error("\n❌ FALHAS:\n"+erros.map(e=>" - "+e).join("\n")); process.exit(1); }
   console.log("\n✅ Teste por usuário: tudo passou.");
   process.exit(0);
