@@ -18,7 +18,7 @@ setTimeout(() => { (async () => {
   const setUser = uid => { w.eval(`state.userId=${JSON.stringify(uid)}; state.user=USUARIOS[${JSON.stringify(uid)}];`); };
   const vista = () => w.document.getElementById("view").innerHTML;
 
-  t("APP_VERSAO é build 144", /build 144/.test(w.eval("APP_VERSAO")));
+  t("APP_VERSAO é build 145", /build 145/.test(w.eval("APP_VERSAO")));
 
   /* ===== 1) Helpers de nome ===== */
   t("condominioPaiDe('Le Monde Parc') → Le Monde", w.condominioPaiDe("Le Monde Parc")==="Le Monde");

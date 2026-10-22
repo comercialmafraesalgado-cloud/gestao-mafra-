@@ -29,7 +29,7 @@ setTimeout(() => { (async () => {
   const setUser=uid=>w.eval(`state.userId=${JSON.stringify(uid)}; state.user=USUARIOS[${JSON.stringify(uid)}];`);
   const reset=()=>{ w._ckAssist.adiadoAte=0; w._ckAssist.rodando=false; w.document.getElementById("modalMount").innerHTML=""; };
 
-  t("APP_VERSAO é build 144", /build 144/.test(w.eval("APP_VERSAO")));
+  t("APP_VERSAO é build 145", /build 145/.test(w.eval("APP_VERSAO")));
   t("funções do assistente existem", ["ckAssistente","_ckFecharVencidos24h","_ckOferecerCheckin","_ckConfirmarAuto","_ckLembrarCheckout"].every(f=>typeof w[f]==="function"));
 
   /* 1) gestor NÃO recebe o assistente */

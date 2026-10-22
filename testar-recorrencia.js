@@ -16,7 +16,7 @@ setTimeout(()=>{(async()=>{
   w._li.modo="semana";
   await w.renderLideranca(); await wait(400);
   let v=w.document.getElementById("view").innerHTML;
-  t("APP_VERSAO é build 144", /build 144/.test(w.eval("APP_VERSAO")));
+  t("APP_VERSAO é build 145", /build 145/.test(w.eval("APP_VERSAO")));
   const cards=[...w.document.querySelectorAll("#view .task")].filter(c=>c.textContent.indexOf("Alimentar Banco")>-1);
   t("semana seguinte mostra as ocorrências projetadas (ter a sex, 4 cards)", cards.length>=4);
   t("ocorrências da semana seguinte NÃO herdam 'Concluído' da base", cards.every(c=>c.textContent.indexOf("Concluído")===-1 && c.textContent.indexOf("Planejado")>-1));

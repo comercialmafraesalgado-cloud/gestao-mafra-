@@ -21,7 +21,7 @@ setTimeout(() => { (async () => {
   const modal=()=>w.document.getElementById("modalMount").innerHTML;
   const hoje=w.ymd(new Date());
 
-  t("APP_VERSAO é build 144", /build 144/.test(w.eval("APP_VERSAO")));
+  t("APP_VERSAO é build 145", /build 145/.test(w.eval("APP_VERSAO")));
   t("agenda semanal antiga NÃO é tocada (nenhuma chave mafra:agenda escrita)", true); // verificado no fim
 
   /* 1) modo Semana continua o padrão; barra Semana|Listas aparece */
