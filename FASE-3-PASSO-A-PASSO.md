@@ -48,7 +48,7 @@
    - Nome **`SUPABASE_URL`** → valor: o **Project URL** do banco de teste (Parte A, passo 5).
    - Nome **`SUPABASE_KEY`** → valor: a **chave publishable** do banco de teste (Parte A, passo 5).
 10. Agora clique em **Deploy**.
-    - Se você **esquecer** de pôr as variáveis, o build **vai travar de propósito** com a mensagem *"BUILD ABORTADO… é de TESTE e não tem SUPABASE_URL/SUPABASE_KEY"*. Isso é o **cinto de segurança**: é só voltar, pôr as duas variáveis e publicar de novo.
+    - Se você **esquecer** de pôr as variáveis, o build **vai travar de propósito** com a mensagem *"BUILD ABORTADO… não é produção e NÃO tem SUPABASE_URL/SUPABASE_KEY"*. Isso é o **cinto de segurança**: é só voltar, pôr as duas variáveis e publicar de novo. (O mesmo acontece se as variáveis apontarem, por engano, para o banco de produção.)
 11. Quando terminar, o Netlify te dá um endereço tipo **`gestao-mafra-teste.netlify.app`**. Esse é o seu ambiente de teste.
 
 ---
