@@ -12,7 +12,7 @@
 | Build no ar | **144** (2026-10-22) — conserto da perda de relatórios, publicado via Netlify Drop (login mostrando "build 144") |
 | Build pronto para publicar | **145** (2026-10-22) — editar mês do relatório + limpeza segura do histórico (manual, recuperável). 1307 funções · 7 suítes ✅ |
 | Fase atual | **Fase 2 — Backup + blindagem (em andamento)**. Fase 1 concluída em 06/10 (`FASE-1-LEVANTAMENTO.md`). Guia executável: `FASE-2-BACKUP-E-BLINDAGEM.md`. Fase 0 concluída; builds 125→143 como exceções aprovadas; trabalho no Claude Code / GitHub desde 06/10/2026 |
-| Próxima fase | Fase 3 — Ambiente de teste (plano em `FASE-3-AMBIENTE-DE-TESTE.md`) |
+| Próxima fase | Fase 3 — Ambiente de teste. **Código já pronto** (`build.js` separa teste/produção à prova de falhas); passo a passo da Mafra em `FASE-3-PASSO-A-PASSO.md` + `TESTE-banco-de-dados.sql`. Falta: criar branch `teste` (com OK) e a Mafra montar o projeto Supabase + site Netlify de teste |
 | Baseline de funções (validar.js) | 122 = 1187 · 123 = 1198 · 126 = 1208 · 127 = 1214 · 129 = 1256 · 130 = **1283** (nada removido) |
 | Testes obrigatórios | `validar.js` ✅ · `testar-usuarios.js` ✅ · `testar-subcondominios.js` ✅ (55) · `testar-checkin-auto.js` ✅ (21) · `testar-build127.js` ✅ (44) · `testar-listas.js` ✅ (62) |
 | Backup | Dropbox › *Backup Gestao Mafra* › `KIT-DE-RECUPERACAO.txt` + zips de cada build |
@@ -25,7 +25,7 @@
 | 0 | Largada | Build 123 (subcondomínios) + este documento | ✅ concluída |
 | 1 | Levantamento | Raio-X do banco, do login atual e das páginas públicas · regras por escrito de **quem vê o quê** (perfil × condomínio) · decisão técnica do cofre · data do Dia D | ✅ concluída (06/10) |
 | 2 | Backup total e blindagem de contas | Cópia integral do banco fora do Supabase · contas do Netlify/Supabase com 2FA e donos definidos · risco zero | 🔄 em andamento |
-| 3 | Ambiente de teste | Site de teste + banco de teste 100% separados da produção | ⏳ |
+| 3 | Ambiente de teste | Site de teste + banco de teste 100% separados da produção | ⏳ código pronto, aguarda painéis da Mafra |
 | 4 | Login novo (crachá) | Login por e-mail no ambiente de teste · recuperação de senha testada com prova | ⏳ |
 | 5 | O cofre (RLS) | Trancar um grupo de dados por vez · fecha com **invasão simulada: tudo zero** | ⏳ |
 | 6 | O que é público | Link de agendamento e demais páginas públicas passam a falar só com a funcionária | ⏳ |
@@ -35,6 +35,14 @@
 ---
 
 ## 2. DIÁRIO DE BORDO (mais recente em cima)
+
+### 22/10/2026 — Fase 3 (código): build.js separa teste de produção, à prova de falhas
+- Objetivo da Fase 3: site de teste + banco de teste 100% separados. Esta sessão adiantou a **parte de código** (não toca na produção).
+- `build.js` reescrito: **produção** (branch `main` / build local) usa **sempre** o banco fixo do código e **ignora** variáveis de ambiente → não dá para repontar por engano. **Qualquer outra branch** (ex.: `teste`) é **obrigada** a ter `SUPABASE_URL`/`SUPABASE_KEY` próprios; se faltarem **ou** apontarem para a produção, o build **ABORTA** (exit 1, nada publicado). Conferência pós-troca garante que o `replace` realmente aconteceu. A troca é só no artefato de `dist/` (o repositório segue com os valores de produção).
+- Provas: 4 cenários rodados (produção · teste-ok · teste-sem-env→aborta · teste-aponta-prod→aborta); no `dist` de **teste** a URL e a chave de produção aparecem **0 vezes**; 7 suítes ✅, **1307 funções** (nada removido). Produção intocada — **não** incrementei a versão (nada muda para o usuário de produção; e o projeto congela releases de produção até o Dia D).
+- Entregáveis: `TESTE-banco-de-dados.sql` (tabela do banco de teste = `chave`/`valor`/`atualizado_em`; RLS ligado + política aberta **temporária** como a produção de hoje, trocada na Fase 5) e `FASE-3-PASSO-A-PASSO.md` (passo a passo da Mafra: projeto Supabase de teste → SQL → site Netlify na branch `teste` + variáveis).
+- Falta (com o OK da Mafra): criar a branch **`teste`** no GitHub; a Mafra cria o projeto Supabase de teste e o site Netlify de teste e põe as 2 variáveis.
+- Revisão adversarial de segurança (5 ângulos: vazamento teste→prod, repoint/quebra da produção, semântica das variáveis do Netlify, robustez do `replace`, SQL/RLS) rodando nesta sessão; correções, se houver, entram em commit de follow-up.
 
 ### 22/10/2026 — Build 145: editar mês do relatório + limpeza segura do histórico
 - Contexto: relatórios de set/out apareciam com mês errado (Agosto em vez de Setembro). Confirmado via SQL que **nada tinha sumido** — era só rótulo de mês. Corrigidos à mão no Supabase (Le Monde Parc e o rascunho do Centro Profissional → 2026-09), pelo ID, sem tocar no agosto de verdade.
